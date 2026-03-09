@@ -100,31 +100,28 @@ node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
 - `--title` - 文章标题（必填）
 - `--content` - 文章内容，Markdown 格式（必填）
 - `--author` - 作者名（可选，默认"龙虾"）
-- `--cover-prompt` - 封面图 prompt（可选，自动生成）
 - `--no-cover` - 不生成封面，使用默认封面
 
-### `scripts/wechat-api.mjs`
+### `scripts/markdown-to-sections.mjs`
 
-微信 API 封装：
-- `getAccessToken()` - 获取并缓存 token
-- `uploadImage(path)` - 上传图片到微信 CDN
-- `createDraft(article)` - 创建草稿
-- `listDrafts()` - 列出草稿
-- `deleteDraft(mediaId)` - 删除草稿
+Markdown 解析器，将 Markdown 文本转换为 Section 数据结构：
+- 支持：H1-H3 标题、段落、有序/无序列表、引用块、代码块、分隔线、图片
+- H2 自动包装为带蓝色左边框的卡片样式
+- 自动添加 footer
 
-### `scripts/renderer.mjs`
+### `scripts/wechat-renderer.mjs`
 
-HTML 渲染器，Markdown → 微信兼容 HTML：
-- 所有样式内联
-- 代码块特殊处理（macOS 风格）
-- 支持：标题、段落、列表、引用、代码、图片等
+HTML 渲染器，Section 数据 → 微信兼容 HTML：
+- 所有样式纯内联（微信不支持 CSS class）
+- 代码块 macOS 风格（红黄绿三圆点 + 横向滚动）
+- 支持：标题、段落、列表、引用、代码、图片、卡片、分隔线等
 
-### `scripts/title-generator.mjs`
+### `scripts/gemini-imagegen.mjs`
 
-标题生成器，生成 5-8 个候选标题：
-- 5 种类型：数字+结果型、痛点+解决方案型、对比+选择型、经验分享型、疑问+答案型
-- 每个标题标注类型和字数
-- 推荐最佳 1-2 个
+内置 Gemini 生图模块：
+- 调用 Gemini Pro API 生成封面图
+- 支持代理配置（`GEMINI_PRO_PROXY`）
+- 返回 base64 解码后的 PNG 文件
 
 ## 标题生成规则
 
@@ -160,14 +157,15 @@ HTML 渲染器，Markdown → 微信兼容 HTML：
 
 ## 生图功能
 
-使用现有的 `gemini-imagegen` skill：
+使用内置的 `scripts/gemini-imagegen.mjs` 模块，通过 Gemini Pro API 生成封面：
 
-```bash
-uv run ~/.openclaw/workspace/skills/gemini-imagegen/scripts/imagegen.py \
-  --prompt "封面描述" \
-  --filename /tmp/cover.png \
-  --model pro \
-  --timeout 600
+```javascript
+import { generateImage } from './gemini-imagegen.mjs';
+
+await generateImage(prompt, '/tmp/cover.png', GEMINI_API_KEY, {
+  model: 'gemini-3-pro-image-preview',
+  timeout: 600000
+});
 ```
 
 封面要求：
@@ -176,6 +174,8 @@ uv run ~/.openclaw/workspace/skills/gemini-imagegen/scripts/imagegen.py \
 - 现代扁平设计风格
 - **所有文字必须使用中文**
 
+需要配置 `GEMINI_API_KEY`，可选配置 `GEMINI_PRO_PROXY` 代理地址。
+
 ## 微信 HTML 渲染
 
 ### 代码块（微信兼容）
@@ -183,25 +183,27 @@ uv run ~/.openclaw/workspace/skills/gemini-imagegen/scripts/imagegen.py \
 macOS 风格（红黄绿三圆点）：
 
 ```html
-<section style="border-radius:10px;overflow:hidden;background:#2b2b2b;">
-  <!-- 标题栏 -->
-  <section style="display:flex;gap:6px;padding:10px 14px;background:#3a3a3a;">
-    <span style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></span>
-    <span style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></span>
-    <span style="width:12px;height:12px;border-radius:50%;background:#28c840;"></span>
-  </section>
-  <!-- 代码区 -->
-  <section style="padding:16px 20px;background:#2b2b2b;">
-    <span style="display:block;...">第一行</span>
-    <span style="display:block;...">第二行</span>
+<section style="border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08);background:#282c34;overflow:hidden;">
+  <!-- 标题栏：line-height:0;font-size:0 消除 inline-block 间距 -->
+  <section style="padding:10px 14px 0;background:#282c34;line-height:0;font-size:0;"><span
+    style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#ff5f57;"></span><span
+    style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#febc2e;"></span><span
+    style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#28c840;"></span></section>
+  <!-- 代码区：overflow-x:auto 实现横向滚动 -->
+  <section style="padding:16px 20px;background:#282c34;font-family:'SF Mono',Consolas,monospace;font-size:14px;overflow-x:auto;overflow-y:hidden;">
+    <p style="margin:0;white-space:nowrap;"><span>第一行代码</span></p>
+    <p style="margin:0;white-space:nowrap;"><span>第二行代码</span></p>
   </section>
 </section>
 ```
 
 关键点：
-- 每行用 `<span display:block>` 包裹
+- 三圆点标签间**不能有空白字符**，否则 inline-block 会产生额外间距
+- header 用 `line-height:0;font-size:0` 消除间距，**不用 `display:flex`**（微信不可靠）
+- 每行用 `<p white-space:nowrap>` 包裹，禁止折行
 - 所有空格转 `&nbsp;`
-- 外层 `<section overflow-x:auto>`
+- 代码区 `<section overflow-x:auto>` 实现横向滚动
+- `font-family` 中带空格的字体名用**单引号**（双引号会截断 `style="..."` 属性）
 
 ### 样式规范
 
@@ -232,35 +234,35 @@ macOS 风格（红黄绿三圆点）：
 
 ### 完整流程示例
 
+```bash
+node scripts/publish.mjs \
+  --title "如何使用 AI 提升工作效率" \
+  --content "$(cat article.md)" \
+  --author "龙虾"
+```
+
+脚本内部流程：
+
 ```javascript
-// 1. 生成标题
-const titles = await generateTitles(content);
-console.log('候选标题：', titles);
+import { markdownToSections } from './markdown-to-sections.mjs';
+import { wxRenderSections } from './wechat-renderer.mjs';
+import { generateImage } from './gemini-imagegen.mjs';
 
-// 2. 用户选择标题
-const selectedTitle = titles[0].title;
+// 1. 生成封面
+const coverPath = await generateCover(title, content);
 
-// 3. 生成封面（后台）
-const coverPromise = generateCover(selectedTitle, content);
+// 2. Markdown → Section → 微信 HTML
+const sections = markdownToSections(markdown);
+const html = wxRenderSections(sections);
 
-// 4. 转换内容
-const html = await markdownToWechatHTML(content);
-
-// 5. 等待封面
-const coverPath = await coverPromise;
-
-// 6. 上传图片
-const thumbMediaId = await uploadImage(coverPath);
+// 3. 上传图片到微信 CDN
 const processedHTML = await uploadInlineImages(html);
+const thumbMediaId = await uploadImage(coverPath);
 
-// 7. 创建草稿
+// 4. 创建草稿
 const result = await createDraft({
-  title: selectedTitle,
-  content: processedHTML,
-  thumbMediaId,
-  author: '龙虾',
+  title, content: processedHTML, thumbMediaId, author: '龙虾'
 });
-
 console.log('草稿创建成功！Media ID:', result.mediaId);
 ```
 

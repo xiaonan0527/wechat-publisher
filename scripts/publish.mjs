@@ -137,7 +137,7 @@ async function createDraft(article) {
       body: JSON.stringify({
         articles: [{
           title: article.title,
-          author: article.author || '楠哥',
+          author: article.author || '龙虾',
           content: article.content,
           thumb_media_id: article.thumbMediaId,
           digest: article.digest || '',

@@ -22,7 +22,7 @@ clawhub install wechat-publisher
 
 ```bash
 cd ~/.openclaw/workspace/skills
-git clone https://github.com/yourusername/wechat-publisher.git
+git clone https://github.com/xiaonan0527/wechat-publisher.git
 ```
 
 ## 配置
@@ -81,7 +81,6 @@ node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
 - Node.js 18+
 - Gemini API Key（用于生图，可选）
 - 微信公众号 AppID 和 AppSecret
-- `gemini-imagegen` skill（用于生图，可选）
 
 ## 安全性
 
@@ -100,4 +99,4 @@ MIT
 
 ## 作者
 
-小虾米 🦐
+楠哥
