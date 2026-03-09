@@ -175,7 +175,7 @@ export function markdownToSections(markdown, options = {}) {
 function isSpecialLine(line) {
   const trimmed = line.trim();
   return (
-    trimmed.startsWith('#') ||
+    /^#{1,6}\s/.test(trimmed) ||
     trimmed.startsWith('- ') ||
     trimmed.startsWith('* ') ||
     trimmed.startsWith('> ') ||

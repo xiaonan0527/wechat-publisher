@@ -14,10 +14,10 @@ const WX_STYLES = {
   li: 'margin-bottom:10px;line-height:1.75;letter-spacing:0.5px',
   blockquote: 'margin:0 0 20px;padding:16px 20px;border-left:4px solid #60a5fa;background-color:#f7f8fa;border-radius:0 8px 8px 0',
   code: 'background-color:#f0f1f3;padding:2px 6px;border-radius:4px;font-size:15px;color:#c7254e;font-family:Menlo,Monaco,Consolas,monospace',
-  codeBlockWrap: 'margin:20px 0;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.15);background:#282c34;overflow:hidden;',
-  codeBlockHeader: 'display:flex;align-items:center;padding:10px 12px;background:#21252b;',
-  codeBlockDot: 'display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;',
-  codeBlockBody: 'width:100%;box-sizing:border-box;padding:16px 20px;color:#abb2bf;background:#282c34;font-family:"SF Mono",Consolas,Monaco,"Courier New",monospace;font-size:14px;line-height:1.6;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;',
+  codeBlockWrap: 'margin:20px 0;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08);background:#282c34;overflow:hidden;',
+  codeBlockHeader: 'padding:10px 14px 0;background:#282c34;line-height:0;font-size:0;',
+  codeBlockDot: 'display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;',
+  codeBlockBody: "width:100%;box-sizing:border-box;padding:16px 20px;color:#abb2bf;background:#282c34;font-family:'SF Mono',Consolas,Monaco,'Courier New',monospace;font-size:14px;line-height:1.6;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;",
   img: 'max-width:100%;height:auto;border-radius:8px;margin:0 0 20px;display:block',
   imgCaption: 'text-align:center;font-size:14px;color:#999;margin:-12px 0 20px',
   hr: 'border:none;border-top:1px solid #eaeaea;margin:32px 0',
@@ -96,23 +96,21 @@ function wxRenderSection(s) {
     
     case 'code': {
       const lines = (s.text || '').split('\n');
+      while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+
+      const lineStyle = 'margin:0;padding:0;white-space:nowrap;overflow:visible;width:max-content;min-width:100%;line-height:1.6;';
       const codeLines = lines.map(line => {
         const escaped = wxEscCode(line);
-        return `<span style="display:block;font-family:Menlo,Monaco,Consolas,monospace;font-size:14px;line-height:1.6;color:#abb2bf;">${escaped}</span>`;
+        return `<p style="${lineStyle}"><span style="font-family:Menlo,Monaco,Consolas,monospace;font-size:14px;color:#abb2bf;">${escaped}</span><span style="display:inline-block;width:20px;">&nbsp;</span></p>`;
       }).join('');
-      
-      return `<section style="${WX_STYLES.codeBlockWrap}">
-        <section style="${WX_STYLES.codeBlockHeader}">
-          <span style="${WX_STYLES.codeBlockDot}background:#ff5f57;"></span>
-          <span style="${WX_STYLES.codeBlockDot}background:#febc2e;"></span>
-          <span style="${WX_STYLES.codeBlockDot}background:#28c840;"></span>
-        </section>
-        <section style="${WX_STYLES.codeBlockBody}">${codeLines}</section>
-      </section>`;
+
+      const header = `<section style="${WX_STYLES.codeBlockHeader}"><span style="${WX_STYLES.codeBlockDot}background:#ff5f57;"></span><span style="${WX_STYLES.codeBlockDot}background:#febc2e;"></span><span style="${WX_STYLES.codeBlockDot}background:#28c840;margin-right:0;"></span></section>`;
+      const body = `<section style="${WX_STYLES.codeBlockBody}">${codeLines}</section>`;
+      return `<section style="${WX_STYLES.codeBlockWrap}">${header}${body}</section>`;
     }
     
     case 'image': {
-      let html = `<img src="${s.src}" alt="${s.alt || ''}" style="${WX_STYLES.img}"/>`;
+      let html = `<img src="${wxEsc(s.src)}" alt="${wxEsc(s.alt || '')}" style="${WX_STYLES.img}"/>`;
       if (s.caption) {
         html += `<p style="${WX_STYLES.imgCaption}">${wxEsc(s.caption)}</p>`;
       }
