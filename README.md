@@ -1,102 +1,160 @@
-# 微信公众号发布 Skill
+<p align="center">
+  <h1 align="center">WeChat Publisher</h1>
+  <p align="center">
+    Markdown to WeChat Official Account article — one command to draft.
+  </p>
+  <p align="center">
+    <a href="./README_CN.md">中文文档</a>
+  </p>
+</p>
 
-独立的微信公众号文章发布工具，不依赖任务中心，直接调用微信 API 发布。
+---
 
-## 特性
+## What it does
 
-- ✅ **直接发布**：无需预览，直接同步到微信公众号草稿箱
-- ✅ **AI 生图**：集成 Gemini Pro 自动生成封面
-- ✅ **自动排版**：转换为微信兼容的 HTML 格式
-- ✅ **图片上传**：自动上传图片到微信 CDN
-- ✅ **独立运行**：不依赖任务中心，可独立分享
+**WeChat Publisher** converts Markdown into WeChat-compatible HTML (pure inline styles) and pushes it as a draft to the WeChat Official Account platform via the official API. It also auto-generates cover images with Gemini Pro.
 
-## 安装
-
-### 通过 ClawHub 安装（推荐）
-
-```bash
-clawhub install wechat-publisher
+```
+Markdown ──▶ Sections ──▶ WeChat HTML ──▶ Draft on WeChat MP
+                                  ▲
+                          Gemini Pro cover
 ```
 
-### 手动安装
+## Features
+
+- **One-command publish** — Markdown in, WeChat draft out
+- **macOS-style code blocks** — red/yellow/green dots header with horizontal scrolling
+- **Built-in cover generation** — Gemini Pro image generation, no external dependencies
+- **Auto image upload** — local images uploaded to WeChat CDN automatically
+- **Pure inline styles** — all CSS inlined for WeChat compatibility, no `<style>` tags
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- WeChat Official Account AppID & AppSecret ([apply here](https://mp.weixin.qq.com/))
+- Gemini API Key (optional, for cover generation)
+
+### Install
 
 ```bash
-cd ~/.openclaw/workspace/skills
 git clone https://github.com/xiaonan0527/wechat-publisher.git
+cd wechat-publisher
 ```
 
-## 配置
-
-1. 复制环境变量模板：
+### Configure
 
 ```bash
-cp ~/.openclaw/workspace/skills/wechat-publisher/.env.example ~/.openclaw/workspace/.env
+cp .env.example .env
 ```
 
-2. 编辑 `.env` 文件，填入你的配置：
+Edit `.env` with your credentials:
 
 ```env
 WECHAT_APPID=your_appid
 WECHAT_APPSECRET=your_appsecret
-GEMINI_API_KEY=your_gemini_key
+GEMINI_API_KEY=your_gemini_key          # optional, for cover generation
+# GEMINI_PRO_PROXY=http://127.0.0.1:7890  # optional, proxy for Gemini API
+# WECHAT_DEFAULT_AUTHOR=YourName          # optional, defaults to "龙虾"
 ```
 
-**⚠️ 重要：不要将 `.env` 文件提交到 Git！**
-
-## 使用
-
-### 在 OpenClaw 中使用
-
-```
-用户：写一篇关于"如何使用 AI 提升工作效率"的公众号文章，直接发布
-```
-
-AI 会自动调用这个 skill 完成发布。
-
-### 命令行使用
+### Publish
 
 ```bash
-node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
-  --title "文章标题" \
-  --content "文章内容（Markdown）" \
-  --author "龙虾"
+node scripts/publish.mjs \
+  --title "Your Article Title" \
+  --content "$(cat your-article.md)" \
+  --author "YourName"
 ```
 
-参数：
-- `--title` - 文章标题（必填）
-- `--content` - 文章内容，Markdown 格式（必填）
-- `--author` - 作者名（可选，默认"龙虾"）
-- `--no-cover` - 不生成封面，使用默认封面
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--title` | Yes | Article title |
+| `--content` | Yes | Article content in Markdown |
+| `--author` | No | Author name (default: `龙虾`) |
+| `--no-cover` | No | Skip cover image generation |
 
-## 工作流程
+## Project Structure
 
-1. 生成封面图（Gemini Pro）
-2. 转换 Markdown 为微信 HTML
-3. 上传封面到微信 CDN
-4. 创建草稿并同步
-5. 返回 Media ID
+```
+wechat-publisher/
+├── scripts/
+│   ├── publish.mjs              # Main entry point — orchestrates the full flow
+│   ├── markdown-to-sections.mjs # Markdown parser → Section data structure
+│   ├── wechat-renderer.mjs      # Section data → WeChat-compatible inline HTML
+│   └── gemini-imagegen.mjs      # Built-in Gemini Pro image generation
+├── .env.example                 # Environment variable template
+├── SKILL.md                     # OpenClaw skill definition
+└── README.md
+```
 
-## 依赖
+## How It Works
 
-- Node.js 18+
-- Gemini API Key（用于生图，可选）
-- 微信公众号 AppID 和 AppSecret
+```
+┌─────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│   Markdown   │────▶│ markdown-to-sections │────▶│  Section Array  │
+└─────────────┘     └──────────────────────┘     └────────┬────────┘
+                                                          │
+                    ┌──────────────────────┐              ▼
+                    │  wechat-renderer     │◀─────────────┘
+                    │  (inline styles,     │
+                    │   macOS code blocks) │
+                    └──────────┬───────────┘
+                               │
+┌─────────────┐               ▼
+│ Gemini Pro  │     ┌──────────────────────┐     ┌─────────────────┐
+│ Cover Image │────▶│  Upload to WeChat    │────▶│   WeChat Draft  │
+└─────────────┘     │  CDN + Create Draft  │     │   (Media ID)    │
+                    └──────────────────────┘     └─────────────────┘
+```
 
-## 安全性
+### Pipeline detail
 
-- ✅ 所有敏感信息从环境变量读取
-- ✅ `.env` 文件已加入 `.gitignore`
-- ✅ 提供 `.env.example` 作为模板
-- ✅ 不在代码中硬编码任何 key
+1. **Parse** — `markdown-to-sections.mjs` converts Markdown into a typed Section array (headings, paragraphs, code blocks, lists, etc.)
+2. **Render** — `wechat-renderer.mjs` transforms each Section into WeChat-compatible HTML with pure inline styles
+3. **Generate cover** — `gemini-imagegen.mjs` calls Gemini Pro API to create a 16:9 cover image
+4. **Upload & publish** — `publish.mjs` uploads images to WeChat CDN and creates a draft via WeChat MP API
 
-## 分享
+### Code block rendering
 
-这个 skill 可以通过 ClawHub 分享给其他 OpenClaw 用户。
+Code blocks use a macOS-style header (three colored dots) with horizontal scrolling:
+
+- `line-height:0; font-size:0` on the header eliminates inline-block gaps (WeChat does not reliably support `display:flex`)
+- Each line uses `<p style="white-space:nowrap">` to prevent wrapping
+- Spaces are converted to `&nbsp;` for WeChat compatibility
+- Font names with spaces use **single quotes** inside `style="..."` to avoid attribute truncation
+
+## Programmatic Usage
+
+```javascript
+import { markdownToSections } from './scripts/markdown-to-sections.mjs';
+import { wxRenderSections } from './scripts/wechat-renderer.mjs';
+
+const sections = markdownToSections(markdownString);
+const html = wxRenderSections(sections);
+// html is ready to paste into WeChat editor or send via API
+```
+
+## Security
+
+- All secrets read from environment variables
+- `.env` is in `.gitignore`
+- `.env.example` provided as a safe template
+- No hardcoded keys anywhere in the codebase
+
+## Contributing
+
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
+[MIT](./LICENSE)
 
-## 作者
+## Author
 
-楠哥
+**楠哥** ([@xiaonan0527](https://github.com/xiaonan0527))
