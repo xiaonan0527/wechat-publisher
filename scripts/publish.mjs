@@ -14,13 +14,15 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { markdownToSections } from './markdown-to-sections.mjs';
 import { wxRenderSections } from './wechat-renderer.mjs';
-import { generateImage } from './gemini-imagegen.mjs';
+import { generateImage as geminiGenerateImage } from './gemini-imagegen.mjs';
+import { generateImage as modelscopeGenerateImage } from './modelscope-imagegen.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ============ 配置（从环境变量读取）============
 const APPID = process.env.WECHAT_APPID || '';
 const APPSECRET = process.env.WECHAT_APPSECRET || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
 
 if (!APPID || !APPSECRET) {
   console.error('❌ 错误：未配置微信公众号 AppID 和 AppSecret');
@@ -213,12 +215,7 @@ function markdownToWechatHTML(markdown, options = {}) {
 }
 
 // ============ 生成封面 ============
-async function generateCover(title, content) {
-  if (!GEMINI_API_KEY) {
-    console.log('⚠️  未配置 Gemini API Key，跳过封面生成');
-    return null;
-  }
-  
+async function generateCover(title, content, provider) {
   const prompt = `创建一个现代扁平风格的封面图，主题：${title}。
 要求：
 - 横版 16:9 比例
@@ -229,30 +226,49 @@ async function generateCover(title, content) {
 - 色彩鲜明，吸引眼球`;
 
   const outputPath = `/tmp/wechat-cover-${Date.now()}.png`;
-  
-  console.log('🎨 生成封面图...');
+
+  // 选择生图提供方：优先使用指定的，否则自动选择
+  const useProvider = provider
+    || (MODELSCOPE_API_KEY ? 'modelscope' : null)
+    || (GEMINI_API_KEY ? 'gemini' : null);
+
+  if (!useProvider) {
+    console.log('⚠️  未配置任何生图 API Key（MODELSCOPE_API_KEY 或 GEMINI_API_KEY），跳过封面生成');
+    return null;
+  }
+
+  console.log(`🎨 生成封面图（${useProvider === 'modelscope' ? '魔搭 Z-Image-Turbo' : 'Gemini Pro'}）...`);
+
   try {
-    await generateImage(prompt, outputPath, GEMINI_API_KEY, {
-      model: 'gemini-3-pro-image-preview',
-      timeout: 600000
-    });
-    
-    console.log('✅ 封面生成完成');
-    
-    // 检查文件是否真的存在
+    if (useProvider === 'modelscope') {
+      await modelscopeGenerateImage(prompt, outputPath, MODELSCOPE_API_KEY, {
+        model: 'Tongyi-MAI/Z-Image-Turbo',
+        size: '1024x576',
+        timeout: 120000,
+      });
+    } else {
+      await geminiGenerateImage(prompt, outputPath, GEMINI_API_KEY, {
+        model: 'gemini-3-pro-image-preview',
+        timeout: 600000,
+      });
+    }
+
     if (!fs.existsSync(outputPath)) {
       console.error('❌ 封面文件不存在:', outputPath);
       return null;
     }
-    
-    // 检查文件大小
+
     const stats = fs.statSync(outputPath);
     const sizeMB = stats.size / (1024 * 1024);
-    console.log(`📊 封面大小: ${sizeMB.toFixed(2)}MB`);
-    
+    console.log(`✅ 封面生成完成（${sizeMB.toFixed(2)}MB）`);
     return outputPath;
   } catch (error) {
-    console.error('❌ 封面生成失败:', error.message);
+    console.error(`❌ 封面生成失败（${useProvider}）:`, error.message);
+    // 如果魔搭失败且 Gemini 可用，自动回退
+    if (useProvider === 'modelscope' && GEMINI_API_KEY && !provider) {
+      console.log('🔄 回退到 Gemini Pro...');
+      return generateCover(title, content, 'gemini');
+    }
     return null;
   }
 }
@@ -269,9 +285,10 @@ async function main() {
   const content = getArg('--content');
   const author = getArg('--author') || process.env.WECHAT_DEFAULT_AUTHOR || '龙虾';
   const noCover = args.includes('--no-cover');
+  const imageProvider = getArg('--image-provider'); // modelscope | gemini
   
   if (!title || !content) {
-    console.error('用法: node publish.mjs --title "标题" --content "内容" [--author "作者"] [--no-cover]');
+    console.error('用法: node publish.mjs --title "标题" --content "内容" [--author "作者"] [--no-cover] [--image-provider modelscope|gemini]');
     process.exit(1);
   }
   
@@ -284,7 +301,7 @@ async function main() {
   let thumbMediaId = null;
   
   if (!noCover) {
-    coverPath = await generateCover(title, content);
+    coverPath = await generateCover(title, content, imageProvider);
   }
   
   // 2. 转换内容

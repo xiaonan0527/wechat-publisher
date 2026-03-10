@@ -23,9 +23,10 @@ trigger: 当用户要求"发布微信文章"、"写公众号"、"直接发微信
 ```env
 WECHAT_APPID=your_appid
 WECHAT_APPSECRET=your_appsecret
-GEMINI_API_KEY=your_gemini_key  # 用于生图
-GEMINI_PRO_PROXY=http://127.0.0.1:7890  # 代理（可选）
-WECHAT_DEFAULT_AUTHOR=龙虾  # 默认作者（可选）
+MODELSCOPE_API_KEY=your_token    # 魔搭生图（国内推荐，免费）
+# GEMINI_API_KEY=your_gemini_key # Gemini 生图（需代理，可选）
+# GEMINI_PRO_PROXY=http://127.0.0.1:7890  # Gemini 代理（可选）
+WECHAT_DEFAULT_AUTHOR=龙虾       # 默认作者（可选）
 ```
 
 ## 使用方法
@@ -101,6 +102,7 @@ node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
 - `--content` - 文章内容，Markdown 格式（必填）
 - `--author` - 作者名（可选，默认"龙虾"）
 - `--no-cover` - 不生成封面，使用默认封面
+- `--image-provider` - 生图提供方：`modelscope`（魔搭）或 `gemini`（可选，默认自动选择）
 
 ### `scripts/markdown-to-sections.mjs`
 
@@ -116,11 +118,18 @@ HTML 渲染器，Section 数据 → 微信兼容 HTML：
 - 代码块 macOS 风格（红黄绿三圆点 + 横向滚动）
 - 支持：标题、段落、列表、引用、代码、图片、卡片、分隔线等
 
+### `scripts/modelscope-imagegen.mjs`
+
+魔搭 ModelScope 生图模块（国内推荐）：
+- 调用 Z-Image-Turbo 模型，国内直连，免费
+- 支持中英文 prompt，中文理解能力强
+- 默认输出 1024x576（16:9 封面比例）
+
 ### `scripts/gemini-imagegen.mjs`
 
-内置 Gemini 生图模块：
+Gemini Pro 生图模块（备选）：
 - 调用 Gemini Pro API 生成封面图
-- 支持代理配置（`GEMINI_PRO_PROXY`）
+- 需要代理配置（`GEMINI_PRO_PROXY`）
 - 返回 base64 解码后的 PNG 文件
 
 ## 标题生成规则
@@ -157,7 +166,27 @@ HTML 渲染器，Section 数据 → 微信兼容 HTML：
 
 ## 生图功能
 
-使用内置的 `scripts/gemini-imagegen.mjs` 模块，通过 Gemini Pro API 生成封面：
+支持两种生图提供方，优先级：魔搭 > Gemini。
+
+### 魔搭 Z-Image-Turbo（推荐）
+
+国内可直接访问，免费，生成速度快，中文理解能力强。
+
+配置 `MODELSCOPE_API_KEY` 即可使用，Token 获取地址：https://modelscope.cn/my/myaccesstoken
+
+```javascript
+import { generateImage } from './modelscope-imagegen.mjs';
+
+await generateImage(prompt, '/tmp/cover.png', MODELSCOPE_API_KEY, {
+  model: 'Tongyi-MAI/Z-Image-Turbo',
+  size: '1024x576',  // 16:9 封面比例
+  timeout: 120000
+});
+```
+
+### Gemini Pro（备选）
+
+需要代理访问，适合海外环境。配置 `GEMINI_API_KEY`，可选 `GEMINI_PRO_PROXY`。
 
 ```javascript
 import { generateImage } from './gemini-imagegen.mjs';
@@ -168,13 +197,18 @@ await generateImage(prompt, '/tmp/cover.png', GEMINI_API_KEY, {
 });
 ```
 
+### 选择逻辑
+
+- 如果配置了 `MODELSCOPE_API_KEY`，默认使用魔搭
+- 如果只配置了 `GEMINI_API_KEY`，使用 Gemini
+- 可通过 `--image-provider modelscope|gemini` 强制指定
+- 魔搭失败时自动回退到 Gemini（如果可用）
+
 封面要求：
 - 横版 16:9
 - 主题相关
 - 现代扁平设计风格
 - **所有文字必须使用中文**
-
-需要配置 `GEMINI_API_KEY`，可选配置 `GEMINI_PRO_PROXY` 代理地址。
 
 ## 微信 HTML 渲染
 
