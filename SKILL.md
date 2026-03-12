@@ -13,7 +13,7 @@ trigger: 当用户要求"发布微信文章"、"写公众号"、"直接发微信
 - ✅ **直接发布**：无需预览，直接同步到微信公众号草稿箱
 - ✅ **内置生图**：集成 Gemini Pro 生图模块，不依赖外部 skill
 - ✅ **自动排版**：转换为微信兼容的 HTML 格式
-- ✅ **图片上传**：自动上传图片到微信 CDN
+- ✅ **图片/视频上传**：自动上传图片和视频到微信 CDN
 - ✅ **独立运行**：完全独立，可直接分享
 
 ## 配置
@@ -108,7 +108,7 @@ node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
 ### `scripts/markdown-to-sections.mjs`
 
 Markdown 解析器，将 Markdown 文本转换为 Section 数据结构：
-- 支持：H1-H3 标题、段落、有序/无序列表、引用块、代码块、分隔线、图片
+- 支持：H1-H3 标题、段落、有序/无序列表、引用块、代码块、分隔线、图片、视频、表格
 - 默认主题：H2 自动包装为带蓝色左边框的卡片样式
 - 杂志风主题（`theme: 'magazine'`）：H2 直接输出为 heading，由渲染器负责杂志风样式
 - 自动添加 footer（杂志风主题使用 "THANKS FOR READING" 风格）
@@ -118,7 +118,7 @@ Markdown 解析器，将 Markdown 文本转换为 Section 数据结构：
 HTML 渲染器，Section 数据 → 微信兼容 HTML：
 - 所有样式纯内联（微信不支持 CSS class）
 - 代码块 macOS 风格（红黄绿三圆点 + 横向滚动）
-- 支持：标题、段落、列表、引用、代码、图片、卡片、分隔线等
+- 支持：标题、段落、列表、引用、代码、图片、视频、表格、卡片、分隔线等
 - 支持 `theme` 参数切换排版风格：`default`（经典）或 `magazine`（杂志风）
 
 ### `scripts/modelscope-imagegen.mjs`
@@ -259,6 +259,43 @@ macOS 风格（红黄绿三圆点）：
 - 分隔线改为居中装饰符 `///`
 - Footer 使用 "THANKS FOR READING" + 渐变下划线
 - 主色调：靛蓝紫（`#6366f1`）→ 紫色（`#8b5cf6`）渐变
+
+## 视频支持
+
+### Markdown 中插入视频
+
+使用与图片相同的 `![]()` 语法，解析器会根据文件扩展名自动区分图片和视频：
+
+```markdown
+![演示视频](./demo.mp4)
+
+![产品介绍](https://example.com/intro.mp4)
+```
+
+支持的视频格式：`.mp4`、`.mov`、`.avi`、`.wmv`、`.webm`
+
+### 视频上传流程
+
+发布时，脚本会自动扫描文章内容中的本地视频文件并上传到微信 CDN：
+
+1. 检测 HTML 中 `src="xxx.mp4"` 等视频路径
+2. 调用微信永久素材 API（`material/add_material?type=video`）上传
+3. 将本地路径替换为微信 CDN 地址
+
+### 编程接口
+
+```javascript
+import { uploadVideo } from './publish.mjs';
+
+// 单独上传视频到微信永久素材
+const { mediaId, url } = await uploadVideo('/path/to/video.mp4', '视频标题', '视频简介');
+```
+
+### 限制
+
+- 微信公众号视频素材大小上限：**20MB**
+- 推荐格式：**MP4**（兼容性最好）
+- 视频上传为**永久素材**，占用素材库配额
 
 ## 注意事项
 

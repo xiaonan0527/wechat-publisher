@@ -68,13 +68,25 @@ function httpsPostMultipart(url, fieldName, filePath, mimeType = 'image/png', ex
     const boundary = '----FormBoundary' + crypto.randomBytes(8).toString('hex');
     const fileName = path.basename(filePath);
     const fileData = fs.readFileSync(filePath);
+    const CRLF = '\r\n';
     const parts = [];
-    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="${fileName}"\r\nContent-Type: ${mimeType}\r\n\r\n`));
+    // 文件字段
+    parts.push(Buffer.from(
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="${fieldName}"; filename="${fileName}"${CRLF}` +
+      `Content-Type: ${mimeType}${CRLF}${CRLF}`
+    ));
     parts.push(fileData);
+    parts.push(Buffer.from(CRLF));
+    // 附加表单字段（如视频的 description）
     for (const [key, value] of Object.entries(extraFields)) {
-      parts.push(Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}`));
+      parts.push(Buffer.from(
+        `--${boundary}${CRLF}` +
+        `Content-Disposition: form-data; name="${key}"${CRLF}${CRLF}` +
+        `${value}${CRLF}`
+      ));
     }
-    parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+    parts.push(Buffer.from(`--${boundary}--${CRLF}`));
     const bodyBuffer = Buffer.concat(parts);
     const opts = {
       hostname: u.hostname,
