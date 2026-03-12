@@ -161,7 +161,8 @@ async function uploadVideo(videoPath, title, introduction = '') {
     { description }
   );
   if (result.media_id) {
-    return { mediaId: result.media_id, url: result.url || '' };
+    console.log(`   media_id: ${result.media_id}`);
+    return result.media_id;
   }
   throw new Error(`上传视频失败: ${JSON.stringify(result)}`);
 }
@@ -223,23 +224,33 @@ async function uploadInlineMedia(html) {
     } catch (e) { console.error(`❌ 图片上传失败: ${e.message}`); }
   }
 
-  // 上传视频
-  const videoRegex = /src="([^"]+\.(mp4|mov|avi|wmv))"/gi;
-  while ((match = videoRegex.exec(html)) !== null) {
+  // 替换图片 URL
+  for (const [localPath, cdnUrl] of Object.entries(mediaMap)) {
+    html = html.split(`src="${localPath}"`).join(`src="${cdnUrl}"`);
+  }
+
+  // 上传视频并替换为微信视频播放器
+  // 微信文章不支持 <video> 标签，需要用 <iframe> + media_id 嵌入
+  const videoTagRegex = /<video\s[^>]*?src="([^"]+\.(mp4|mov|avi|wmv|webm))"[^>]*?><\/video>/gi;
+  const videoReplacements = [];
+  while ((match = videoTagRegex.exec(html)) !== null) {
+    const fullTag = match[0];
     const filePath = match[1];
-    if (filePath.startsWith('http://') || filePath.startsWith('https://') || mediaMap[filePath]) continue;
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) continue;
     if (!fs.existsSync(filePath)) { console.log(`⚠️  视频不存在: ${filePath}`); continue; }
     try {
       console.log(`📤 上传视频: ${path.basename(filePath)}`);
       const videoTitle = path.basename(filePath, path.extname(filePath));
-      const { url } = await uploadVideo(filePath, videoTitle);
-      if (url) { mediaMap[filePath] = url; console.log('✅ 视频上传成功'); }
-      else { console.log('⚠️  视频已上传但未返回 CDN URL（media_id 已记录）'); }
+      const mediaId = await uploadVideo(filePath, videoTitle);
+      const iframe = `<iframe class="video_iframe" data-vidtype="2" data-mpvid="${mediaId}" ` +
+        `src="https://mp.weixin.qq.com/mp/readtemplate?t=pages/video_player_tmpl&auto=0&vid=${mediaId}" ` +
+        `style="width:100%;min-height:200px;border:0;margin:0 0 20px;" allowfullscreen></iframe>`;
+      videoReplacements.push({ from: fullTag, to: iframe });
+      console.log('✅ 视频上传成功');
     } catch (e) { console.error(`❌ 视频上传失败: ${e.message}`); }
   }
-
-  for (const [localPath, cdnUrl] of Object.entries(mediaMap)) {
-    html = html.split(`src="${localPath}"`).join(`src="${cdnUrl}"`);
+  for (const { from, to } of videoReplacements) {
+    html = html.split(from).join(to);
   }
 
   return html;

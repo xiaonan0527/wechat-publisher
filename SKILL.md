@@ -274,21 +274,22 @@ macOS 风格（红黄绿三圆点）：
 
 支持的视频格式：`.mp4`、`.mov`、`.avi`、`.wmv`、`.webm`
 
-### 视频上传流程
+### 视频上传与嵌入流程
 
-发布时，脚本会自动扫描文章内容中的本地视频文件并上传到微信 CDN：
+发布时，脚本自动处理文章中的本地视频：
 
-1. 检测 HTML 中 `src="xxx.mp4"` 等视频路径
-2. 调用微信永久素材 API（`material/add_material?type=video`）上传
-3. 将本地路径替换为微信 CDN 地址
+1. 渲染器将 `![](video.mp4)` 输出为 `<video>` 占位标签
+2. `uploadInlineMedia` 检测到 `<video>` 标签中的本地视频文件
+3. 调用微信永久素材 API（`material/add_material?type=video`）上传，获得 `media_id`
+4. 将 `<video>` 标签替换为微信视频播放器 `<iframe>`（使用 `media_id` 嵌入）
+
+> **为什么不用 `<video>` 标签？** 微信公众号文章不支持标准 HTML5 `<video>` 标签，视频必须通过微信专属的 `<iframe>` 播放器嵌入，使用上传后返回的 `media_id` 作为标识。
 
 ### 编程接口
 
 ```javascript
-import { uploadVideo } from './publish.mjs';
-
-// 单独上传视频到微信永久素材
-const { mediaId, url } = await uploadVideo('/path/to/video.mp4', '视频标题', '视频简介');
+// 单独上传视频到微信永久素材，返回 media_id
+const mediaId = await uploadVideo('/path/to/video.mp4', '视频标题', '视频简介');
 ```
 
 ### 限制
@@ -296,6 +297,7 @@ const { mediaId, url } = await uploadVideo('/path/to/video.mp4', '视频标题',
 - 微信公众号视频素材大小上限：**20MB**
 - 推荐格式：**MP4**（兼容性最好）
 - 视频上传为**永久素材**，占用素材库配额
+- 微信文章不支持 `<video>` 标签，脚本会自动转换为微信 `<iframe>` 播放器
 
 ## 注意事项
 
