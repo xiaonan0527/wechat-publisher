@@ -1,6 +1,6 @@
 /**
  * 魔搭 ModelScope 图片生成模块
- * 调用 Z-Image-Turbo 模型，国内可直接访问，免费
+ * 调用 Qwen/Qwen-Image-2512 模型，国内可直接访问，免费
  * API 为异步模式：提交任务 → 轮询结果 → 下载图片
  */
 
@@ -13,14 +13,14 @@ import fs from 'fs';
  * @param {string} outputPath - 输出文件路径
  * @param {string} apiKey - ModelScope API Token
  * @param {object} options
- * @param {string} options.model - 模型名（默认 Tongyi-MAI/Z-Image-Turbo）
+ * @param {string} options.model - 模型名（默认 Qwen/Qwen-Image-2512）
  * @param {string} options.size - 图片尺寸（默认 1024x576，16:9）
  * @param {number} options.timeout - 超时毫秒数（默认 120000）
  * @param {number} options.pollInterval - 轮询间隔毫秒数（默认 3000）
  * @returns {Promise<string>} 输出路径
  */
 export async function generateImage(prompt, outputPath, apiKey, options = {}) {
-  const model = options.model || 'Tongyi-MAI/Z-Image-Turbo';
+  const model = options.model || 'Qwen/Qwen-Image-2512';
   const size = options.size || '1024x576';
   const timeout = options.timeout || 120000;
   const pollInterval = options.pollInterval || 3000;

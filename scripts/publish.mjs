@@ -237,12 +237,12 @@ async function generateCover(title, content, provider) {
     return null;
   }
 
-  console.log(`🎨 生成封面图（${useProvider === 'modelscope' ? '魔搭 Z-Image-Turbo' : 'Gemini Pro'}）...`);
+  console.log(`🎨 生成封面图（${useProvider === 'modelscope' ? '魔搭 Qwen-Image-2512' : 'Gemini Pro'}）...`);
 
   try {
     if (useProvider === 'modelscope') {
       await modelscopeGenerateImage(prompt, outputPath, MODELSCOPE_API_KEY, {
-        model: 'Tongyi-MAI/Z-Image-Turbo',
+        model: 'Qwen/Qwen-Image-2512',
         size: '1024x576',
         timeout: 120000,
       });

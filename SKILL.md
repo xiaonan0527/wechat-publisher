@@ -124,7 +124,7 @@ HTML 渲染器，Section 数据 → 微信兼容 HTML：
 ### `scripts/modelscope-imagegen.mjs`
 
 魔搭 ModelScope 生图模块（国内推荐）：
-- 调用 Z-Image-Turbo 模型，国内直连，免费
+- 调用 Qwen-Image-2512 模型，国内直连，免费
 - 支持中英文 prompt，中文理解能力强
 - 默认输出 1024x576（16:9 封面比例）
 
@@ -171,7 +171,7 @@ Gemini Pro 生图模块（备选）：
 
 支持两种生图提供方，优先级：魔搭 > Gemini。
 
-### 魔搭 Z-Image-Turbo（推荐）
+### 魔搭 Qwen-Image-2512（推荐）
 
 国内可直接访问，免费，生成速度快，中文理解能力强。
 
@@ -181,7 +181,7 @@ Gemini Pro 生图模块（备选）：
 import { generateImage } from './modelscope-imagegen.mjs';
 
 await generateImage(prompt, '/tmp/cover.png', MODELSCOPE_API_KEY, {
-  model: 'Tongyi-MAI/Z-Image-Turbo',
+  model: 'Qwen/Qwen-Image-2512',
   size: '1024x576',  // 16:9 封面比例
   timeout: 120000
 });

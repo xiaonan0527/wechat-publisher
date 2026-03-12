@@ -19,7 +19,7 @@
 
 ## What it does
 
-**WeChat Publisher** converts Markdown into WeChat-compatible HTML (pure inline styles) and pushes it as a draft to the WeChat Official Account platform via the official API. It also auto-generates cover images with ModelScope Z-Image-Turbo (China, free) or Gemini Pro.
+**WeChat Publisher** converts Markdown into WeChat-compatible HTML (pure inline styles) and pushes it as a draft to the WeChat Official Account platform via the official API. It also auto-generates cover images with ModelScope Qwen-Image-2512 (China, free) or Gemini Pro.
 
 ```
 Markdown ──▶ Sections ──▶ WeChat HTML ──▶ Draft on WeChat MP
@@ -31,7 +31,7 @@ Markdown ──▶ Sections ──▶ WeChat HTML ──▶ Draft on WeChat MP
 
 - **One-command publish** — Markdown in, WeChat draft out
 - **macOS-style code blocks** — red/yellow/green dots header with horizontal scrolling
-- **Dual image generation** — ModelScope Z-Image-Turbo (China, free) + Gemini Pro (global), auto-fallback
+- **Dual image generation** — ModelScope Qwen-Image-2512 (China, free) + Gemini Pro (global), auto-fallback
 - **Auto image upload** — local images uploaded to WeChat CDN automatically
 - **Magazine theme** — optional "magazine-style" layout with numbered sections, gradient accents, and spacious typography
 - **Pure inline styles** — all CSS inlined for WeChat compatibility, no `<style>` tags
@@ -113,7 +113,7 @@ wechat-publisher/
 │   ├── publish.mjs              # Main entry point — orchestrates the full flow
 │   ├── markdown-to-sections.mjs # Markdown parser → Section data structure
 │   ├── wechat-renderer.mjs      # Section data → WeChat-compatible inline HTML
-│   ├── modelscope-imagegen.mjs  # ModelScope Z-Image-Turbo (China, free)
+│   ├── modelscope-imagegen.mjs  # ModelScope Qwen-Image-2512 (China, free)
 │   └── gemini-imagegen.mjs      # Gemini Pro image generation (global)
 ├── .env.example                 # Environment variable template
 ├── SKILL.md                     # OpenClaw skill definition
@@ -144,7 +144,7 @@ wechat-publisher/
 
 1. **Parse** — `markdown-to-sections.mjs` converts Markdown into a typed Section array (headings, paragraphs, code blocks, lists, etc.)
 2. **Render** — `wechat-renderer.mjs` transforms each Section into WeChat-compatible HTML with pure inline styles
-3. **Generate cover** — `modelscope-imagegen.mjs` (Z-Image-Turbo, recommended) or `gemini-imagegen.mjs` (Gemini Pro) creates a 16:9 cover image, with auto-fallback
+3. **Generate cover** — `modelscope-imagegen.mjs` (Qwen-Image-2512, recommended) or `gemini-imagegen.mjs` (Gemini Pro) creates a 16:9 cover image, with auto-fallback
 4. **Upload & publish** — `publish.mjs` uploads images to WeChat CDN and creates a draft via WeChat MP API
 
 ### Code block rendering
