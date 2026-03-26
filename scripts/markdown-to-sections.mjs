@@ -43,7 +43,7 @@ export function markdownToSections(markdown, options = {}) {
     // H2 标题
     if (line.startsWith('## ')) {
       const text = line.substring(3).trim();
-      if (options.theme === 'magazine') {
+      if (options.theme === 'magazine' || options.theme === 'tech') {
         sections.push({ type: 'heading', level: 2, text });
       } else {
         sections.push({
@@ -198,6 +198,12 @@ export function markdownToSections(markdown, options = {}) {
     sections.push({
       type: 'footer',
       text: 'THANKS FOR READING',
+      subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
+    });
+  } else if (options.theme === 'tech') {
+    sections.push({
+      type: 'footer',
+      text: '[EOF]',
       subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
     });
   } else {

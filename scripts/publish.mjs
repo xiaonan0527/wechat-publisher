@@ -15,14 +15,12 @@ import crypto from 'crypto';
 import { markdownToSections } from './markdown-to-sections.mjs';
 import { wxRenderSections } from './wechat-renderer.mjs';
 import { generateImage as geminiGenerateImage } from './gemini-imagegen.mjs';
-import { generateImage as modelscopeGenerateImage } from './modelscope-imagegen.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ============ 配置（从环境变量读取）============
 const APPID = process.env.WECHAT_APPID || '';
 const APPSECRET = process.env.WECHAT_APPSECRET || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
 
 if (!APPID || !APPSECRET) {
   console.error('❌ 错误：未配置微信公众号 AppID 和 AppSecret');
@@ -269,7 +267,7 @@ function markdownToWechatHTML(markdown, options = {}) {
 }
 
 // ============ 生成封面 ============
-async function generateCover(title, content, provider) {
+async function generateCover(title, content) {
   const prompt = `创建一个现代扁平风格的封面图，主题：${title}。
 要求：
 - 横版 16:9 比例
@@ -281,50 +279,48 @@ async function generateCover(title, content, provider) {
 
   const outputPath = `/tmp/wechat-cover-${Date.now()}.png`;
 
-  // 选择生图提供方：优先使用指定的，否则自动选择
-  const useProvider = provider
-    || (MODELSCOPE_API_KEY ? 'modelscope' : null)
-    || (GEMINI_API_KEY ? 'gemini' : null);
-
-  if (!useProvider) {
-    console.log('⚠️  未配置任何生图 API Key（MODELSCOPE_API_KEY 或 GEMINI_API_KEY），跳过封面生成');
+  if (!GEMINI_API_KEY) {
+    console.log('⚠️  未配置 GEMINI_API_KEY，跳过封面生成');
     return null;
   }
 
-  console.log(`🎨 生成封面图（${useProvider === 'modelscope' ? '魔搭 Qwen-Image-2512' : 'Gemini Pro'}）...`);
-
+  // 尝试 Gemini Pro
+  console.log('🎨 生成封面图（Gemini Pro）...');
   try {
-    if (useProvider === 'modelscope') {
-      await modelscopeGenerateImage(prompt, outputPath, MODELSCOPE_API_KEY, {
-        model: 'Qwen/Qwen-Image-2512',
-        size: '1024x576',
-        timeout: 120000,
-      });
-    } else {
-      await geminiGenerateImage(prompt, outputPath, GEMINI_API_KEY, {
-        model: 'gemini-3-pro-image-preview',
-        timeout: 600000,
-      });
-    }
+    await geminiGenerateImage(prompt, outputPath, GEMINI_API_KEY, {
+      model: 'gemini-2.0-pro-exp-image-generation',
+      timeout: 600000,
+    });
 
-    if (!fs.existsSync(outputPath)) {
-      console.error('❌ 封面文件不存在:', outputPath);
-      return null;
+    if (fs.existsSync(outputPath)) {
+      const stats = fs.statSync(outputPath);
+      const sizeMB = stats.size / (1024 * 1024);
+      console.log(`✅ 封面生成完成（Gemini Pro，${sizeMB.toFixed(2)}MB）`);
+      return outputPath;
     }
-
-    const stats = fs.statSync(outputPath);
-    const sizeMB = stats.size / (1024 * 1024);
-    console.log(`✅ 封面生成完成（${sizeMB.toFixed(2)}MB）`);
-    return outputPath;
   } catch (error) {
-    console.error(`❌ 封面生成失败（${useProvider}）:`, error.message);
-    // 如果魔搭失败且 Gemini 可用，自动回退
-    if (useProvider === 'modelscope' && GEMINI_API_KEY && !provider) {
-      console.log('🔄 回退到 Gemini Pro...');
-      return generateCover(title, content, 'gemini');
-    }
-    return null;
+    console.error('❌ Gemini Pro 生成失败:', error.message);
   }
+
+  // 降级到 Gemini Flash
+  console.log('🔄 降级到 Gemini Flash...');
+  try {
+    await geminiGenerateImage(prompt, outputPath, GEMINI_API_KEY, {
+      model: 'gemini-2.0-flash-preview-image-generation',
+      timeout: 600000,
+    });
+
+    if (fs.existsSync(outputPath)) {
+      const stats = fs.statSync(outputPath);
+      const sizeMB = stats.size / (1024 * 1024);
+      console.log(`✅ 封面生成完成（Gemini Flash，${sizeMB.toFixed(2)}MB）`);
+      return outputPath;
+    }
+  } catch (error) {
+    console.error('❌ Gemini Flash 生成失败:', error.message);
+  }
+
+  return null;
 }
 
 // ============ 主函数 ============
@@ -339,11 +335,10 @@ async function main() {
   const content = getArg('--content');
   const author = getArg('--author') || process.env.WECHAT_DEFAULT_AUTHOR || '龙虾';
   const noCover = args.includes('--no-cover');
-  const imageProvider = getArg('--image-provider'); // modelscope | gemini
-  const theme = getArg('--theme') || 'default'; // default | magazine
+  const theme = getArg('--theme') || 'default'; // default | magazine | tech
   
   if (!title || !content) {
-    console.error('用法: node publish.mjs --title "标题" --content "内容" [--author "作者"] [--no-cover] [--image-provider modelscope|gemini] [--theme default|magazine]');
+    console.error('用法: node publish.mjs --title "标题" --content "内容" [--author "作者"] [--no-cover] [--theme default|magazine|tech]');
     process.exit(1);
   }
   
@@ -356,7 +351,7 @@ async function main() {
   let thumbMediaId = null;
   
   if (!noCover) {
-    coverPath = await generateCover(title, content, imageProvider);
+    coverPath = await generateCover(title, content);
   }
   
   // 2. 转换内容

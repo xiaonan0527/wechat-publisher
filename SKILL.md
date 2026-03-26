@@ -23,8 +23,7 @@ trigger: 当用户要求"发布微信文章"、"写公众号"、"直接发微信
 ```env
 WECHAT_APPID=your_appid
 WECHAT_APPSECRET=your_appsecret
-MODELSCOPE_API_KEY=your_token    # 魔搭生图（国内推荐，免费）
-# GEMINI_API_KEY=your_gemini_key # Gemini 生图（需代理，可选）
+GEMINI_API_KEY=your_gemini_key   # Gemini 生图（必填）
 # GEMINI_PRO_PROXY=http://127.0.0.1:7890  # Gemini 代理（可选）
 WECHAT_DEFAULT_AUTHOR=龙虾       # 默认作者（可选）
 ```
@@ -102,8 +101,7 @@ node ~/.openclaw/workspace/skills/wechat-publisher/scripts/publish.mjs \
 - `--content` - 文章内容，Markdown 格式（必填）
 - `--author` - 作者名（可选，默认"龙虾"）
 - `--no-cover` - 不生成封面，使用默认封面
-- `--image-provider` - 生图提供方：`modelscope`（魔搭）或 `gemini`（可选，默认自动选择）
-- `--theme` - 排版主题：`default`（经典）或 `magazine`（杂志风，可选，默认 default）
+- `--theme` - 排版主题：`default`（经典）、`magazine`（杂志风）或 `tech`（科技风，可选，默认 default）
 
 ### `scripts/markdown-to-sections.mjs`
 
@@ -111,7 +109,8 @@ Markdown 解析器，将 Markdown 文本转换为 Section 数据结构：
 - 支持：H1-H3 标题、段落、有序/无序列表、引用块、代码块、分隔线、图片、视频、表格
 - 默认主题：H2 自动包装为带蓝色左边框的卡片样式
 - 杂志风主题（`theme: 'magazine'`）：H2 直接输出为 heading，由渲染器负责杂志风样式
-- 自动添加 footer（杂志风主题使用 "THANKS FOR READING" 风格）
+- 科技风主题（`theme: 'tech'`）：H2 直接输出为 heading，由渲染器负责科技风样式
+- 自动添加 footer（杂志风使用 "THANKS FOR READING"，科技风使用 "[EOF]"）
 
 ### `scripts/wechat-renderer.mjs`
 
@@ -119,20 +118,13 @@ HTML 渲染器，Section 数据 → 微信兼容 HTML：
 - 所有样式纯内联（微信不支持 CSS class）
 - 代码块 macOS 风格（红黄绿三圆点 + 横向滚动）
 - 支持：标题、段落、列表、引用、代码、图片、视频、表格、卡片、分隔线等
-- 支持 `theme` 参数切换排版风格：`default`（经典）或 `magazine`（杂志风）
-
-### `scripts/modelscope-imagegen.mjs`
-
-魔搭 ModelScope 生图模块（国内推荐）：
-- 调用 Qwen-Image-2512 模型，国内直连，免费
-- 支持中英文 prompt，中文理解能力强
-- 默认输出 1024x576（16:9 封面比例）
+- 支持 `theme` 参数切换排版风格：`default`（经典）、`magazine`（杂志风）或 `tech`（科技风）
 
 ### `scripts/gemini-imagegen.mjs`
 
-Gemini Pro 生图模块（备选）：
-- 调用 Gemini Pro API 生成封面图
-- 需要代理配置（`GEMINI_PRO_PROXY`）
+Gemini 生图模块：
+- 默认使用 Gemini Pro 生图，失败时降级到 Gemini Flash
+- 支持通过 `options.model` 指定模型
 - 返回 base64 解码后的 PNG 文件
 
 ## 标题生成规则
@@ -169,43 +161,37 @@ Gemini Pro 生图模块（备选）：
 
 ## 生图功能
 
-支持两种生图提供方，优先级：魔搭 > Gemini。
+默认使用 Gemini Pro 生图，失败时降级到 Gemini Flash（一次机会，不重试）。
 
-### 魔搭 Qwen-Image-2512（推荐）
+### 生图流程
 
-国内可直接访问，免费，生成速度快，中文理解能力强。
-
-配置 `MODELSCOPE_API_KEY` 即可使用，Token 获取地址：https://modelscope.cn/my/myaccesstoken
-
-```javascript
-import { generateImage } from './modelscope-imagegen.mjs';
-
-await generateImage(prompt, '/tmp/cover.png', MODELSCOPE_API_KEY, {
-  model: 'Qwen/Qwen-Image-2512',
-  size: '1024x576',  // 16:9 封面比例
-  timeout: 120000
-});
+```
+generateCover(title, content)
+  ├─ 尝试 Gemini Pro (gemini-2.0-pro-exp-image-generation)
+  │   ├─ 成功 → 返回
+  │   └─ 失败 → 降级
+  └─ 尝试 Gemini Flash (gemini-2.0-flash-preview-image-generation)
+      ├─ 成功 → 返回
+      └─ 失败 → 返回 null
 ```
 
-### Gemini Pro（备选）
-
-需要代理访问，适合海外环境。配置 `GEMINI_API_KEY`，可选 `GEMINI_PRO_PROXY`。
+配置 `GEMINI_API_KEY` 即可使用，可选配置 `GEMINI_PRO_PROXY` 代理。
 
 ```javascript
 import { generateImage } from './gemini-imagegen.mjs';
 
+// Pro 模型
 await generateImage(prompt, '/tmp/cover.png', GEMINI_API_KEY, {
-  model: 'gemini-3-pro-image-preview',
+  model: 'gemini-2.0-pro-exp-image-generation',
+  timeout: 600000
+});
+
+// Flash 模型（降级）
+await generateImage(prompt, '/tmp/cover.png', GEMINI_API_KEY, {
+  model: 'gemini-2.0-flash-preview-image-generation',
   timeout: 600000
 });
 ```
-
-### 选择逻辑
-
-- 如果配置了 `MODELSCOPE_API_KEY`，默认使用魔搭
-- 如果只配置了 `GEMINI_API_KEY`，使用 Gemini
-- 可通过 `--image-provider modelscope|gemini` 强制指定
-- 魔搭失败时自动回退到 Gemini（如果可用）
 
 封面要求：
 - 横版 16:9
@@ -259,6 +245,18 @@ macOS 风格（红黄绿三圆点）：
 - 分隔线改为居中装饰符 `///`
 - Footer 使用 "THANKS FOR READING" + 渐变下划线
 - 主色调：靛蓝紫（`#6366f1`）→ 紫色（`#8b5cf6`）渐变
+
+**科技风主题（tech）：**
+- H2 渲染为深色背景卡片，编号 `01 //` + 青色渐变条 + 白色标题文字
+- H3 左侧青色竖线 + 等宽字体 `>` 装饰
+- 段落行高 1.8，字间距 0.6px
+- 引用块深灰背景（`#1e293b`）+ 青色左边框 + 浅色文字
+- 行内代码青色文字 + 深灰背景
+- 分隔线改为 `// ──────── //` 居中装饰
+- 加粗高亮使用科技感配色（青色、绿色系，不用粉色系）
+- 表格深色表头 + 青色底边框 + 深灰交替行
+- Footer 使用 `[EOF]` + 青色渐变条
+- 主色调：青色（`#22d3ee`）+ 深灰（`#1e293b`），霓虹/终端感
 
 ## 视频支持
 
@@ -335,6 +333,13 @@ node scripts/publish.mjs \
   --content "$(cat article.md)" \
   --author "龙虾" \
   --theme magazine
+
+# 科技风主题
+node scripts/publish.mjs \
+  --title "如何使用 AI 提升工作效率" \
+  --content "$(cat article.md)" \
+  --author "龙虾" \
+  --theme tech
 ```
 
 脚本内部流程：
