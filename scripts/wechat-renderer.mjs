@@ -94,23 +94,23 @@ const MAG = {
   link: 'color:#6366f1;text-decoration:none;border-bottom:1px solid #c7d2fe',
 };
 
-// ============ 科技风样式常量（Terminal CLI 风格） ============
+// ============ 科技风样式常量（大数字锚点风格） ============
 const TECH = {
-  accent: '#0ea5e9',
-  accent2: '#10b981',
-  dark: '#0f172a',
-  text: '#1e293b',
-  textMuted: '#64748b',
+  accent: '#f97316',    // orange-500，活力橙，与蓝调杂志风完全不同
+  accentLight: '#fff7ed', // orange-50，极淡橙底
+  dark: '#1c1917',      // stone-900，近黑但暖调
+  text: '#44403c',      // stone-700，正文暖灰
+  textMuted: '#a8a29e', // stone-400，次要文字
   mono: "Menlo,Monaco,Consolas,'Courier New',monospace",
-  body: 'font-size:17px;line-height:1.8;color:#1e293b;word-break:break-word;letter-spacing:0.3px',
-  p: 'margin:0 0 20px;line-height:1.8;letter-spacing:0.3px;color:#1e293b',
-  ul: 'margin:0 0 20px;padding-left:0;list-style-type:none',
-  ol: 'margin:0 0 20px;padding-left:22px;list-style-type:decimal',
-  li: 'margin-bottom:10px;line-height:1.8;letter-spacing:0.3px',
-  blockquote: 'margin:0 0 20px;padding:14px 18px 14px 18px;border-left:3px dashed #0ea5e9;background-color:#f0f9ff;border-radius:0 6px 6px 0',
-  strong: 'font-weight:700;color:#0ea5e9',
-  code: "background-color:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:14px;color:#0f172a;font-family:Menlo,Monaco,Consolas,'Courier New',monospace",
-  link: 'color:#0ea5e9;text-decoration:underline;text-underline-offset:2px',
+  body: 'font-size:17px;line-height:1.9;color:#44403c;word-break:break-word;letter-spacing:0.2px',
+  p: 'margin:0 0 22px;line-height:1.9;letter-spacing:0.2px;color:#44403c',
+  ul: 'margin:0 0 22px;padding-left:0;list-style-type:none',
+  ol: 'margin:0 0 22px;padding-left:0;list-style-type:none',
+  li: 'margin-bottom:10px;line-height:1.9;letter-spacing:0.2px',
+  blockquote: 'margin:0 0 22px;padding:16px 20px;background-color:#fff7ed;border-radius:8px;border:1px solid #fed7aa',
+  strong: 'font-weight:700;color:#ea580c',
+  code: "background-color:#f5f5f4;padding:2px 6px;border-radius:3px;font-size:14px;color:#1c1917;font-family:Menlo,Monaco,Consolas,'Courier New',monospace",
+  link: 'color:#f97316;text-decoration:underline;text-underline-offset:2px',
 };
 
 function techRichText(text) {
@@ -372,7 +372,7 @@ function wxRenderSectionMagazine(s, partCounter) {
   }
 }
 
-// ============ 科技风渲染（Terminal CLI 风格） ============
+// ============ 科技风渲染（大数字锚点风格） ============
 function wxRenderSectionTech(s, partCounter) {
   if (!s || !s.type) return '';
 
@@ -382,16 +382,21 @@ function wxRenderSectionTech(s, partCounter) {
       if (level === 2) {
         partCounter.n++;
         const num = String(partCounter.n).padStart(2, '0');
-        // [ 01 ] 序号标签 + 大标题 + 渐变下划线，全白底，无深色背景
-        return `<section style="margin:36px 0 20px;">` +
-          `<p style="margin:0 0 6px;font-family:${TECH.mono};font-size:11px;color:${TECH.accent};letter-spacing:4px;font-weight:400;">[ ${num} ]</p>` +
-          `<h2 style="margin:0 0 10px;font-size:22px;font-weight:800;color:${TECH.dark};line-height:1.35;letter-spacing:0.5px;">${techRichText(s.text)}</h2>` +
-          `<section style="height:2px;background:linear-gradient(90deg,${TECH.accent} 0%,${TECH.accent2} 50%,transparent 100%);border-radius:1px;"></section>` +
-          `</section>`;
+        // 大数字左侧 + 标题右侧，table 布局，数字超大做装饰锚点
+        return `<section style="margin:40px 0 18px;border-top:1px solid #e7e5e4;padding-top:20px;">` +
+          `<section style="display:table;width:100%;border-collapse:collapse;">` +
+            `<section style="display:table-cell;width:52px;vertical-align:top;padding-right:14px;">` +
+              `<p style="margin:0;font-size:36px;font-weight:900;color:${TECH.accent};line-height:1;font-family:${TECH.mono};letter-spacing:-1px;">${num}</p>` +
+            `</section>` +
+            `<section style="display:table-cell;vertical-align:middle;">` +
+              `<h2 style="margin:0;font-size:21px;font-weight:800;color:${TECH.dark};line-height:1.35;letter-spacing:0.3px;">${techRichText(s.text)}</h2>` +
+            `</section>` +
+          `</section>` +
+        `</section>`;
       }
-      // H3：› 箭头前缀，无边框背景
-      return `<h3 style="margin:24px 0 14px;font-size:17px;font-weight:700;color:${TECH.dark};line-height:1.5;">` +
-        `<span style="font-family:${TECH.mono};color:${TECH.accent};font-weight:400;margin-right:6px;">›</span>` +
+      // H3：全大写字距拉开，橙色小方块前缀
+      return `<h3 style="margin:26px 0 14px;font-size:16px;font-weight:700;color:${TECH.dark};line-height:1.5;letter-spacing:1px;">` +
+        `<span style="display:inline-block;width:8px;height:8px;background:${TECH.accent};border-radius:2px;margin-right:8px;vertical-align:middle;"></span>` +
         `${techRichText(s.text)}</h3>`;
     }
 
@@ -407,27 +412,42 @@ function wxRenderSectionTech(s, partCounter) {
 
     case 'list': {
       if (s.ordered) {
+        // 有序列表：橙色圆形数字序号
+        let idx = 0;
         const items = (s.items || []).map(item => {
+          idx++;
           const text = typeof item === 'string' ? item : item.text;
-          return `<li style="${TECH.li}">${techRichText(text)}</li>`;
+          return `<section style="display:table;width:100%;margin-bottom:12px;border-collapse:collapse;">` +
+            `<section style="display:table-cell;width:26px;vertical-align:top;padding-right:10px;">` +
+              `<span style="display:inline-block;width:22px;height:22px;background:${TECH.accent};border-radius:50%;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px;font-family:${TECH.mono};">${idx}</span>` +
+            `</section>` +
+            `<section style="display:table-cell;vertical-align:middle;">` +
+              `<p style="margin:0;line-height:1.9;color:${TECH.text};">${techRichText(text)}</p>` +
+            `</section>` +
+          `</section>`;
         }).join('');
-        return `<ol style="${TECH.ol}">${items}</ol>`;
+        return `<section style="margin:0 0 22px;">${items}</section>`;
       }
-      // 无序列表：用 ▸ 替代默认 disc，颜色为 accent
+      // 无序列表：短横线前缀
       const items = (s.items || []).map(item => {
         const text = typeof item === 'string' ? item : item.text;
-        return `<li style="margin-bottom:10px;line-height:1.8;padding-left:20px;">` +
-          `<span style="display:inline-block;margin-left:-20px;width:20px;color:${TECH.accent};font-weight:700;font-family:${TECH.mono};">▸</span>` +
-          `${techRichText(text)}</li>`;
+        return `<section style="display:table;width:100%;margin-bottom:10px;border-collapse:collapse;">` +
+          `<section style="display:table-cell;width:20px;vertical-align:top;padding-right:8px;">` +
+            `<span style="display:inline-block;width:12px;height:2px;background:${TECH.accent};margin-top:12px;border-radius:1px;"></span>` +
+          `</section>` +
+          `<section style="display:table-cell;vertical-align:middle;">` +
+            `<p style="margin:0;line-height:1.9;color:${TECH.text};">${techRichText(text)}</p>` +
+          `</section>` +
+        `</section>`;
       }).join('');
-      return `<ul style="${TECH.ul}">${items}</ul>`;
+      return `<section style="margin:0 0 22px;">${items}</section>`;
     }
 
     case 'blockquote': {
-      // 虚线左边框 + 浅蓝底 + "// NOTE" 小标签，文字正常深色
+      // 橙色淡底卡片，顶部橙色短线装饰，无左边框
       return `<section style="${TECH.blockquote}">` +
-        `<p style="margin:0 0 6px;font-family:${TECH.mono};font-size:11px;color:${TECH.accent};letter-spacing:3px;font-weight:400;">// NOTE</p>` +
-        `<p style="margin:0;line-height:1.8;color:${TECH.text};">${techRichText(s.text)}</p>` +
+        `<section style="width:24px;height:3px;background:${TECH.accent};border-radius:2px;margin-bottom:10px;"></section>` +
+        `<p style="margin:0;line-height:1.9;color:${TECH.text};font-style:italic;">${techRichText(s.text)}</p>` +
         `</section>`;
     }
 
@@ -458,17 +478,17 @@ function wxRenderSectionTech(s, partCounter) {
     }
 
     case 'table': {
-      const techTableWrap = 'margin:0 0 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px;border:1px solid #e2e8f0;';
+      const techTableWrap = 'margin:0 0 22px;overflow-x:auto;-webkit-overflow-scrolling:touch;';
       const techTable = 'border-collapse:collapse;width:100%;min-width:100%;font-size:15px;line-height:1.6;';
-      const techTh = `padding:10px 16px;background-color:#f8fafc;border-bottom:2px solid ${TECH.accent};font-weight:700;color:${TECH.dark};white-space:nowrap;font-family:${TECH.mono};font-size:13px;letter-spacing:1px;`;
-      const techTd = `padding:10px 16px;border-bottom:1px solid #f1f5f9;color:${TECH.text};white-space:nowrap;`;
+      const techTh = `padding:10px 14px;background-color:${TECH.dark};font-weight:700;color:#fff;white-space:nowrap;font-size:13px;letter-spacing:0.5px;`;
+      const techTd = `padding:10px 14px;border-bottom:1px solid #e7e5e4;color:${TECH.text};white-space:nowrap;`;
       const aligns = s.aligns || [];
       const ths = (s.headers || []).map((h, ci) => {
         const align = aligns[ci] || 'left';
         return `<th style="${techTh}text-align:${align};">${techRichText(h)}</th>`;
       }).join('');
       const trs = (s.rows || []).map((row, ri) => {
-        const bg = ri % 2 === 1 ? `background-color:#f8fafc;` : '';
+        const bg = ri % 2 === 1 ? `background-color:${TECH.accentLight};` : '';
         const tds = row.map((cell, ci) => {
           const align = aligns[ci] || 'left';
           return `<td style="${techTd}${bg}text-align:${align};">${techRichText(cell)}</td>`;
@@ -479,12 +499,17 @@ function wxRenderSectionTech(s, partCounter) {
     }
 
     case 'divider': {
-      // 居中点状分隔符，简洁 CLI 风格
-      return `<p style="text-align:center;margin:32px 0;font-size:13px;color:${TECH.textMuted};letter-spacing:8px;font-family:${TECH.mono};">· · ·</p>`;
+      return `<section style="margin:36px 0;display:table;width:100%;border-collapse:collapse;">` +
+        `<section style="display:table-cell;vertical-align:middle;"><section style="height:1px;background:#e7e5e4;"></section></section>` +
+        `<section style="display:table-cell;width:40px;text-align:center;padding:0 10px;white-space:nowrap;">` +
+          `<span style="display:inline-block;width:6px;height:6px;background:${TECH.accent};border-radius:50%;"></span>` +
+        `</section>` +
+        `<section style="display:table-cell;vertical-align:middle;"><section style="height:1px;background:#e7e5e4;"></section></section>` +
+      `</section>`;
     }
 
     case 'card': {
-      let style = `margin:0 0 20px;padding:20px;border-radius:6px;border:1px solid #e2e8f0;background-color:#f8fafc;`;
+      let style = `margin:0 0 22px;padding:20px;border-radius:8px;border:1px solid #fed7aa;background-color:${TECH.accentLight};`;
       if (s.bgColor) style += `;background-color:${s.bgColor}`;
       if (s.borderColor) style += `;border-color:${s.borderColor}`;
       const children = (s.children || []).map(c => wxRenderSectionTech(c, partCounter)).join('');
@@ -492,9 +517,9 @@ function wxRenderSectionTech(s, partCounter) {
     }
 
     case 'footer': {
-      return `<section style="margin-top:48px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;">` +
-        `<p style="margin:0 0 6px;font-family:${TECH.mono};font-size:12px;color:${TECH.accent};letter-spacing:4px;">[ END ]</p>` +
-        (s.subtext ? `<p style="margin:4px 0 0;font-size:13px;color:${TECH.textMuted};">${wxEsc(s.subtext)}</p>` : '') +
+      return `<section style="margin-top:52px;padding-top:24px;border-top:2px solid ${TECH.accent};text-align:center;">` +
+        `<p style="margin:0;font-size:13px;color:${TECH.textMuted};letter-spacing:2px;">— END —</p>` +
+        (s.subtext ? `<p style="margin:8px 0 0;font-size:13px;color:${TECH.textMuted};">${wxEsc(s.subtext)}</p>` : '') +
         `</section>`;
     }
 
