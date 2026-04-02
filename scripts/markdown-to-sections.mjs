@@ -43,7 +43,7 @@ export function markdownToSections(markdown, options = {}) {
     // H2 标题
     if (line.startsWith('## ')) {
       const text = line.substring(3).trim();
-      if (options.theme === 'magazine' || options.theme === 'tech') {
+      if (options.theme === 'magazine' || options.theme === 'tech' || options.theme === 'guochao' || options.theme === 'ins' || options.theme === 'news') {
         sections.push({ type: 'heading', level: 2, text });
       } else {
         sections.push({
@@ -204,6 +204,24 @@ export function markdownToSections(markdown, options = {}) {
     sections.push({
       type: 'footer',
       text: '[EOF]',
+      subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
+    });
+  } else if (options.theme === 'guochao') {
+    sections.push({
+      type: 'footer',
+      text: '✦ ✦ ✦',
+      subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
+    });
+  } else if (options.theme === 'ins') {
+    sections.push({
+      type: 'footer',
+      text: '✿ ✿ ✿',
+      subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
+    });
+  } else if (options.theme === 'news') {
+    sections.push({
+      type: 'footer',
+      text: '— 全文完 —',
       subtext: options.footerSubtext || '🦐 龙虾 · OpenClaw 技术分享'
     });
   } else {

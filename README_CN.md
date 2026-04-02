@@ -30,10 +30,10 @@ Markdown ──▶ Sections ──▶ 微信 HTML ──▶ 公众号草稿箱
 ## 特性
 
 - **一键发布** — Markdown 输入，草稿箱输出
+- **6 种排版主题** — 经典、杂志、科技、国潮、ins、复古报纸，`--theme` 一键切换
 - **macOS 风格代码块** — 红黄绿三圆点 + 横向滚动
 - **双通道生图** — 魔搭 Qwen-Image-2512（国内免费）+ Gemini Pro（海外），自动回退
 - **自动图片上传** — 本地图片自动上传到微信 CDN
-- **杂志风主题** — 可选杂志风排版，编号章节、渐变装饰、大留白，一键切换
 - **纯内联样式** — 所有 CSS 内联，兼容微信渲染引擎
 
 ## 快速开始
@@ -103,7 +103,47 @@ node scripts/publish.mjs \
 | `--author` | 否 | 作者名（默认：`龙虾`） |
 | `--no-cover` | 否 | 跳过封面图生成 |
 | `--image-provider` | 否 | `modelscope`（魔搭）或 `gemini`（默认自动选择） |
-| `--theme` | 否 | `default`（经典）或 `magazine`（杂志风，默认 default） |
+| `--theme` | 否 | 排版主题，见下方主题一览（默认 `default`） |
+
+## 主题风格
+
+共 6 种主题，通过 `--theme` 参数切换。
+
+### `default` — 经典
+
+蓝色系，中规中矩，适合大多数内容。蓝色引用块、荧光笔加粗高亮。
+
+![经典主题](examples/screenshot-default.png)
+
+### `magazine` — 杂志风
+
+紫色渐变，`PART 01` 编号章节卡片，大留白，高级感。适合深度长文。
+
+![杂志风主题](examples/screenshot-magazine.png)
+
+### `tech` — 科技风
+
+暖橙色系。H2 左侧超大数字锚点（`01`/`02`），橙色圆圈有序列表，短横线无序列表。适合技术文章。
+
+![科技风主题](examples/screenshot-tech.png)
+
+### `guochao` — 国潮红金
+
+中国红 + 暗金色。`◆ 标题 ◆` 居中对称，红金渐变下划线，`❝ ❞` 书法引号引用块。适合文化、品牌类内容。
+
+![国潮红金主题](examples/screenshot-guochao.png)
+
+### `ins` — 小清新 ins 风
+
+粉色系。圆角 chip 序号标签，粉橙渐变圆圈有序列表，✿ 装饰引用卡片，整体圆润温柔。适合生活方式、轻内容。
+
+![小清新 ins 主题](examples/screenshot-ins.png)
+
+### `news` — 复古报纸
+
+泛黄纸底（`#faf6e9`）。黑色实底白字 H2 标题栏 + 罗马数字，`【编者按】` 双线引用框，`»` 列表符号，三线分隔。适合叙事、历史类内容。
+
+![复古报纸主题](examples/screenshot-news.png)
 
 ## 项目结构
 
@@ -162,13 +202,10 @@ wechat-publisher/
 import { markdownToSections } from './scripts/markdown-to-sections.mjs';
 import { wxRenderSections } from './scripts/wechat-renderer.mjs';
 
-// 默认主题
-const sections = markdownToSections(markdownString);
-const html = wxRenderSections(sections);
-
-// 杂志风主题 — 编号章节、渐变装饰、大留白排版
-const magSections = markdownToSections(markdownString, { theme: 'magazine' });
-const magHtml = wxRenderSections(magSections, { theme: 'magazine' });
+// 支持 6 种主题：default / magazine / tech / guochao / ins / news
+const theme = 'tech';
+const sections = markdownToSections(markdownString, { theme });
+const html = wxRenderSections(sections, { theme });
 ```
 
 ## 安全性

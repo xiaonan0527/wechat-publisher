@@ -97,8 +97,8 @@ AI 编程工具的演进速度远超预期。根据最新研究数据，到 2026
 更多信息请参考 [AI 编程完整指南](https://example.com)。
 `;
 
-const themes = ['default', 'magazine', 'tech'];
-const themeNames = { default: '经典', magazine: '杂志风', tech: '科技风' };
+const themes = ['default', 'magazine', 'tech', 'guochao', 'ins', 'news'];
+const themeNames = { default: '经典', magazine: '杂志风', tech: '科技风', guochao: '国潮红金', ins: '小清新 ins', news: '复古报纸' };
 
 for (const theme of themes) {
   const sections = markdownToSections(md, { theme });
